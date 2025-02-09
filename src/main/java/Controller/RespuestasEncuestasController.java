@@ -1,6 +1,8 @@
 package Controller;
 
 import com.mongodb.client.MongoCollection;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -9,19 +11,14 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.TreeItemPropertyValueFactory;
 import javafx.stage.Stage;
 import main.MongoDBConnection;
 import org.bson.Document;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class RespuestasEncuestasController {
 
@@ -35,45 +32,33 @@ public class RespuestasEncuestasController {
     private TextField buscarPorUsuarioTextField;
 
     @FXML
-    private TableColumn<RespuestaView, String> encuestaTableColumn;
+    private TreeTableColumn<RespuestaView, String> usuarioTreeTableColumn;
 
     @FXML
-    private TableColumn<RespuestaView, String> usuarioTableColumn;
+    private TreeTableColumn<RespuestaView, String> encuestaTreeTableColumn;
 
     @FXML
-    private TableColumn<RespuestaView, String> respuesta1TableColumn;
+    private TreeTableColumn<RespuestaView, String> preguntaTreeTableColumn;
 
     @FXML
-    private TableColumn<RespuestaView, String> respuesta2TableColumn;
+    private TreeTableColumn<RespuestaView, String> respuestaTreeTableColumn;
 
     @FXML
-    private TableColumn<RespuestaView, String> respuesta3TableColumn1;
+    private TreeTableView<RespuestaView> statsTreeTableView;
 
-    @FXML
-    private TableView<RespuestaView> statsTableView;
-
-    private ObservableList<RespuestaView> respuestasList;
+    private TreeItem<RespuestaView> respuestasRaiz;
 
     @FXML
     public void initialize() {
-        respuestasList = FXCollections.observableArrayList();
-
-        encuestaTableColumn.setCellValueFactory(new PropertyValueFactory<>("tituloEncuesta"));
-        usuarioTableColumn.setCellValueFactory(new PropertyValueFactory<>("nombreUsuario"));
-        respuesta1TableColumn.setCellValueFactory(new PropertyValueFactory<>("respuesta1"));
-        respuesta2TableColumn.setCellValueFactory(new PropertyValueFactory<>("respuesta2"));
-        respuesta3TableColumn1.setCellValueFactory(new PropertyValueFactory<>("respuesta3"));
+        usuarioTreeTableColumn.setCellValueFactory(new TreeItemPropertyValueFactory<>("usuario"));
+        encuestaTreeTableColumn.setCellValueFactory(new TreeItemPropertyValueFactory<>("encuesta"));
+        preguntaTreeTableColumn.setCellValueFactory(new TreeItemPropertyValueFactory<>("pregunta"));
+        respuestaTreeTableColumn.setCellValueFactory(new TreeItemPropertyValueFactory<>("respuesta"));
 
         cargarRespuestasDesdeMongo();
-        statsTableView.setItems(respuestasList);
 
-        buscarPorUsuarioTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filtrarRespuestasPorUsuario(newValue);
-        });
-
-        buscarPorEncuestaTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filtrarRespuestasPorEncuesta(newValue);
-        });
+        buscarPorEncuestaTextField.textProperty().addListener((observable, oldValue, newValue) -> aplicarFiltros());
+        buscarPorUsuarioTextField.textProperty().addListener((observable, oldValue, newValue) -> aplicarFiltros());
     }
 
     private void cargarRespuestasDesdeMongo() {
@@ -81,58 +66,69 @@ public class RespuestasEncuestasController {
         MongoCollection<Document> encuestasCollection = MongoDBConnection.getDatabase().getCollection("Encuesta");
         MongoCollection<Document> usuariosCollection = MongoDBConnection.getDatabase().getCollection("Usuario");
 
+        TreeItem<RespuestaView> root = new TreeItem<>(new RespuestaView("Usuario", "Encuesta", "Pregunta", "Respuesta"));
+
         for (Document respuestaDoc : respuestasCollection.find()) {
-            int idEncuesta = respuestaDoc.getInteger("id_encuesta");
-            int idUsuario = respuestaDoc.getInteger("id_usuario");
+            Integer idEncuesta = respuestaDoc.getInteger("id_encuesta");
+            Integer idUsuario = respuestaDoc.getInteger("id_usuario");
+
+            if (idEncuesta == null || idUsuario == null) continue;
 
             Document encuestaDoc = encuestasCollection.find(new Document("_id", idEncuesta)).first();
             Document usuarioDoc = usuariosCollection.find(new Document("_id", idUsuario)).first();
 
             if (encuestaDoc != null && usuarioDoc != null) {
-                String tituloEncuesta = encuestaDoc.getString("titulo");
-                String nombreUsuario = usuarioDoc.getString("nombre");
+                String usuario = usuarioDoc.getString("nombre");
+                String encuesta = encuestaDoc.getString("titulo");
 
+                List<Document> preguntas = (List<Document>) encuestaDoc.get("preguntas");
                 List<Document> respuestas = (List<Document>) respuestaDoc.get("respuestas");
-                String respuesta1 = respuestas.size() > 0 ? respuestas.get(0).getString("respuesta") : "";
-                String respuesta2 = respuestas.size() > 1 ? respuestas.get(1).getString("respuesta") : "";
-                String respuesta3 = respuestas.size() > 2 ? respuestas.get(2).getString("respuesta") : "";
 
-                RespuestaView respuestaView = new RespuestaView(idEncuesta, tituloEncuesta, nombreUsuario, respuesta1, respuesta2, respuesta3);
-                respuestasList.add(respuestaView);
+                TreeItem<RespuestaView> encuestaItem = new TreeItem<>(new RespuestaView(usuario, encuesta, "", ""));
+
+                for (int i = 0; i < preguntas.size(); i++) {
+                    Document pregunta = preguntas.get(i);
+                    Document respuesta = respuestas.get(i);
+
+                    String preguntaTexto = pregunta.getString("pregunta");
+                    String respuestaTexto = respuesta.getString("respuesta");
+
+                    TreeItem<RespuestaView> preguntaItem = new TreeItem<>(new RespuestaView("", "", preguntaTexto, respuestaTexto));
+                    encuestaItem.getChildren().add(preguntaItem);
+                }
+
+                root.getChildren().add(encuestaItem);
             }
         }
 
-        // Sort the list by the survey ID
-        respuestasList.sort(Comparator.comparingInt(RespuestaView::getIdEncuesta));
+        respuestasRaiz = root;
+        statsTreeTableView.setRoot(root);
+        statsTreeTableView.setShowRoot(false);
     }
 
-    private void filtrarRespuestasPorUsuario(String nombreUsuario) {
-        if (nombreUsuario == null || nombreUsuario.isEmpty()) {
-            statsTableView.setItems(respuestasList);
-        } else {
-            List<RespuestaView> filteredList = respuestasList.stream()
-                    .filter(respuesta -> respuesta.getNombreUsuario().toLowerCase().contains(nombreUsuario.toLowerCase()))
-                    .collect(Collectors.toList());
-            statsTableView.setItems(FXCollections.observableArrayList(filteredList));
-        }
-    }
+    private void aplicarFiltros() {
+        String filtroEncuesta = buscarPorEncuestaTextField.getText().toLowerCase();
+        String filtroUsuario = buscarPorUsuarioTextField.getText().toLowerCase();
 
-    private void filtrarRespuestasPorEncuesta(String tituloEncuesta) {
-        if (tituloEncuesta == null || tituloEncuesta.isEmpty()) {
-            statsTableView.setItems(respuestasList);
-        } else {
-            List<RespuestaView> filteredList = respuestasList.stream()
-                    .filter(respuesta -> respuesta.getTituloEncuesta().toLowerCase().contains(tituloEncuesta.toLowerCase()))
-                    .collect(Collectors.toList());
-            statsTableView.setItems(FXCollections.observableArrayList(filteredList));
+        TreeItem<RespuestaView> root = new TreeItem<>(new RespuestaView("Usuario", "Encuesta", "Pregunta", "Respuesta"));
+
+        for (TreeItem<RespuestaView> encuestaItem : respuestasRaiz.getChildren()) {
+            boolean coincideEncuesta = filtroEncuesta.isEmpty() || encuestaItem.getValue().getEncuesta().toLowerCase().contains(filtroEncuesta);
+            boolean coincideUsuario = filtroUsuario.isEmpty() || encuestaItem.getValue().getUsuario().toLowerCase().contains(filtroUsuario);
+
+            if (coincideEncuesta && coincideUsuario) {
+                root.getChildren().add(encuestaItem);
+            }
         }
+
+        statsTreeTableView.setRoot(root);
     }
 
     @FXML
     void onBackAction(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainView.fxml"));
-            loader.setController(new MainController()); // Especificar el controlador
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/FXML/MainView.fxml"));
+            loader.setController(new MainController());
             Parent mainView = loader.load();
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -145,44 +141,32 @@ public class RespuestasEncuestasController {
     }
 
     public static class RespuestaView {
-        private int idEncuesta;
-        private String tituloEncuesta;
-        private String nombreUsuario;
-        private String respuesta1;
-        private String respuesta2;
-        private String respuesta3;
+        private String usuario;
+        private String encuesta;
+        private String pregunta;
+        private String respuesta;
 
-        public RespuestaView(int idEncuesta, String tituloEncuesta, String nombreUsuario, String respuesta1, String respuesta2, String respuesta3) {
-            this.idEncuesta = idEncuesta;
-            this.tituloEncuesta = tituloEncuesta;
-            this.nombreUsuario = nombreUsuario;
-            this.respuesta1 = respuesta1;
-            this.respuesta2 = respuesta2;
-            this.respuesta3 = respuesta3;
-        } //dasdas
-
-        public int getIdEncuesta() {
-            return idEncuesta;
+        public RespuestaView(String usuario, String encuesta, String pregunta, String respuesta) {
+            this.usuario = usuario;
+            this.encuesta = encuesta;
+            this.pregunta = pregunta;
+            this.respuesta = respuesta;
         }
 
-        public String getTituloEncuesta() {
-            return tituloEncuesta;
+        public String getUsuario() {
+            return usuario;
         }
 
-        public String getNombreUsuario() {
-            return nombreUsuario;
+        public String getEncuesta() {
+            return encuesta;
         }
 
-        public String getRespuesta1() {
-            return respuesta1;
+        public String getPregunta() {
+            return pregunta;
         }
 
-        public String getRespuesta2() {
-            return respuesta2;
-        }
-
-        public String getRespuesta3() {
-            return respuesta3;
+        public String getRespuesta() {
+            return respuesta;
         }
     }
 }

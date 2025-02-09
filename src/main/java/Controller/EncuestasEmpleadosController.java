@@ -86,18 +86,15 @@ public class EncuestasEmpleadosController {
     void onModifyAction(ActionEvent event) {
         Encuesta selectedEncuesta = empleadosTableView.getSelectionModel().getSelectedItem();
         if (selectedEncuesta == null) {
-            // Mostrar un mensaje de error si no se selecciona ninguna encuesta
             Alert alert = new Alert(Alert.AlertType.ERROR, "Por favor, selecciona una encuesta para modificar.", ButtonType.OK);
             alert.showAndWait();
             return;
         }
 
-        // Crear el diálogo de modificación
         Dialog<Encuesta> dialog = new Dialog<>();
         dialog.setTitle("Modificar Encuesta");
         dialog.setHeaderText("Modifica los campos de la encuesta seleccionada");
 
-        // Crear los labels y text fields
         Label tituloLabel = new Label("Título:");
         TextField tituloField = new TextField(selectedEncuesta.getTitulo());
 
@@ -113,7 +110,6 @@ public class EncuestasEmpleadosController {
         Label pregunta3Label = new Label("Pregunta 3:");
         TextField pregunta3Field = new TextField(selectedEncuesta.getPreguntas().get(2).getPregunta());
 
-        // Crear el layout del diálogo
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -132,11 +128,20 @@ public class EncuestasEmpleadosController {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Añadir botones de OK y Cancelar
         ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
 
-        // Convertir los resultados cuando se presiona OK
+        Node okButton = dialog.getDialogPane().lookupButton(okButtonType);
+        okButton.addEventFilter(ActionEvent.ACTION, event1 -> {
+            if (tituloField.getText().trim().isEmpty() || descripcionField.getText().trim().isEmpty() ||
+                    pregunta1Field.getText().trim().isEmpty() || pregunta2Field.getText().trim().isEmpty() ||
+                    pregunta3Field.getText().trim().isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Todos los campos son obligatorios.", ButtonType.OK);
+                alert.showAndWait();
+                event1.consume();
+            }
+        });
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == okButtonType) {
                 selectedEncuesta.setTitulo(tituloField.getText());
@@ -151,9 +156,8 @@ public class EncuestasEmpleadosController {
 
         Optional<Encuesta> result = dialog.showAndWait();
         result.ifPresent(encuesta -> {
-            // Actualizar la base de datos con los nuevos valores
             actualizarEncuestaEnBaseDeDatos(encuesta);
-            cargarEncuestasDesdeMongo(); // Recargar la tabla para reflejar los cambios
+            cargarEncuestasDesdeMongo();
         });
     }
 
@@ -339,12 +343,6 @@ public class EncuestasEmpleadosController {
     }
 
     private Encuesta obtenerEncuestaPorId(int idEncuesta) {
-        // Suponiendo que tienes una lista o un método para obtener la encuesta por su ID
-        // Esto debe adaptarse dependiendo de cómo gestionas las encuestas
-
-        // Aquí un ejemplo de cómo podrías hacerlo desde una lista en memoria:
-        // Encuesta encuesta = listaDeEncuestas.stream().filter(encuesta -> encuesta.getId() == idEncuesta).findFirst().orElse(null);
-
         // Para propósitos de este ejemplo, devolveremos una nueva encuesta con el ID
         return new Encuesta(idEncuesta, "Titulo de la encuesta", "Descripción",
                 List.of(new Pregunta("Pregunta 1", "texto"),

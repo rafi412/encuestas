@@ -46,6 +46,7 @@ public class MainController {
         // Verificar si el usuario no es "root" y desactivar los botones
         if (usuarioLogeado != null && !"root".equals(usuarioLogeado.getNombre())) {
             buttonUsuario.setDisable(true);
+            buttonRespuestas.setDisable(true);
         }
     }
 

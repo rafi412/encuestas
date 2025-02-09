@@ -99,6 +99,11 @@ public class UsuariosController {
 
         Label edadLabel = new Label("Edad:");
         TextField edadField = new TextField(String.valueOf(selectedUsuario.getEdad()));
+        edadField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                edadField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
 
         // Crear el layout del diálogo
         GridPane grid = new GridPane();
@@ -120,7 +125,22 @@ public class UsuariosController {
         ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
 
-        // Convertir los resultados cuando se presiona OK
+        // Añadir filtro de evento al botón OK
+        Node okButton = dialog.getDialogPane().lookupButton(okButtonType);
+        okButton.addEventFilter(ActionEvent.ACTION, event1 -> {
+            if (nombreField.getText().trim().isEmpty() || apellidosField.getText().trim().isEmpty() ||
+                    correoField.getText().trim().isEmpty() || edadField.getText().trim().isEmpty()) {
+                // Mostrar alerta si algún campo está vacío
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Todos los campos son obligatorios.", ButtonType.OK);
+                alert.showAndWait();
+                event1.consume();
+            } else if (!correoField.getText().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "El correo no cumple con el esquema de un correo válido.", ButtonType.OK);
+                alert.showAndWait();
+                event1.consume();
+            }
+        });
+
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == okButtonType) {
                 selectedUsuario.setNombre(nombreField.getText());
@@ -132,7 +152,11 @@ public class UsuariosController {
             return null;
         });
 
-        Optional<Usuario> result = dialog.showAndWait();
+        Optional<Usuario> result;
+        do {
+            result = dialog.showAndWait();
+        } while (result.isPresent() && result.get() == null);
+
         result.ifPresent(usuario -> {
             actualizarUsuarioEnBaseDeDatos(usuario);
             cargarUsuariosDesdeMongo(); // Recargar la tabla para reflejar los cambios
@@ -213,13 +237,11 @@ public class UsuariosController {
         MongoCollection<Document> collection = MongoDBConnection.getDatabase().getCollection("Usuario");
         List<Usuario> filteredUsuarios = new ArrayList<>();
 
-        // Create a filter to search for users whose name, surname, or email contains the search text
+        // Crear un filtro de búsqueda
         Document filter = new Document("$or", List.of(
                 new Document("nombre", new Document("$regex", searchText).append("$options", "i")),
                 new Document("apellidos", new Document("$regex", searchText).append("$options", "i"))
         ));
-
-        // Query the database with the filter
         for (Document doc : collection.find(filter)) {
             Usuario usuario = new Usuario(
                     doc.getLong("_id").intValue(),
@@ -231,8 +253,6 @@ public class UsuariosController {
             );
             filteredUsuarios.add(usuario);
         }
-
-        // Update the usuariosList with the filtered results
         usuariosList.setAll(filteredUsuarios);
     }
 

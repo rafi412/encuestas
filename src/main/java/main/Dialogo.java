@@ -2,71 +2,89 @@ package main;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Sorts;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.TextInputDialog;
+import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.util.Duration;
 import org.bson.Document;
 
+import org.controlsfx.control.Notifications;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public class Dialogo {
 
     public static boolean mostrarAgregarEncuestaDialog() {
-        // Solicitar el título de la encuesta
-        TextInputDialog tituloDialog = new TextInputDialog();
-        tituloDialog.setTitle("Nueva Encuesta");
-        tituloDialog.setHeaderText("Añadir Título de la Encuesta");
-        tituloDialog.setContentText("Título:");
+        // Crear el diálogo
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Nueva Encuesta");
+        dialog.setHeaderText("Añadir Nueva Encuesta");
 
-        Optional<String> titulo = tituloDialog.showAndWait();
-        if (titulo.isEmpty() || titulo.get().trim().isEmpty()) return false;
+        // Crear los labels y text fields
+        Label tituloLabel = new Label("Título:");
+        TextField tituloField = new TextField();
 
-        // Solicitar la descripción de la encuesta
-        TextInputDialog descripcionDialog = new TextInputDialog();
-        descripcionDialog.setTitle("Descripción de la Encuesta");
-        descripcionDialog.setHeaderText("Añadir Descripción");
-        descripcionDialog.setContentText("Descripción:");
+        Label descripcionLabel = new Label("Descripción:");
+        TextField descripcionField = new TextField();
 
-        Optional<String> descripcion = descripcionDialog.showAndWait();
-        if (descripcion.isEmpty() || descripcion.get().trim().isEmpty()) return false;
+        Label pregunta1Label = new Label("Pregunta 1:");
+        TextField pregunta1Field = new TextField();
 
-        // Crear lista para las preguntas
-        List<String> preguntas = new ArrayList<>();
+        Label pregunta2Label = new Label("Pregunta 2:");
+        TextField pregunta2Field = new TextField();
 
-        // Añadir 3 preguntas obligatorias
-        while (preguntas.size() < 3) {
-            TextInputDialog preguntaDialog = new TextInputDialog();
-            preguntaDialog.setTitle("Pregunta de la Encuesta");
-            preguntaDialog.setHeaderText("Añadir Pregunta");
-            preguntaDialog.setContentText("Pregunta " + (preguntas.size() + 1) + ":");
+        Label pregunta3Label = new Label("Pregunta 3:");
+        TextField pregunta3Field = new TextField();
 
-            Optional<String> pregunta = preguntaDialog.showAndWait();
-            if (pregunta.isEmpty() || pregunta.get().trim().isEmpty()) {
-                // Si la pregunta no es válida, mostrar mensaje y continuar con la misma pregunta
-                Alert alert = new Alert(Alert.AlertType.ERROR, "La pregunta no puede estar vacía. Por favor, ingresa una pregunta válida.", ButtonType.OK);
+        // Crear el layout del diálogo
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        grid.add(tituloLabel, 0, 0);
+        grid.add(tituloField, 1, 0);
+        grid.add(descripcionLabel, 0, 1);
+        grid.add(descripcionField, 1, 1);
+        grid.add(pregunta1Label, 0, 2);
+        grid.add(pregunta1Field, 1, 2);
+        grid.add(pregunta2Label, 0, 3);
+        grid.add(pregunta2Field, 1, 3);
+        grid.add(pregunta3Label, 0, 4);
+        grid.add(pregunta3Field, 1, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Añadir botones de OK y Cancelar
+        ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
+
+        // Convertir los resultados cuando se presiona OK
+        Node okButton = dialog.getDialogPane().lookupButton(okButtonType);
+        okButton.addEventFilter(ActionEvent.ACTION, event1 -> {
+            if (tituloField.getText().trim().isEmpty() || descripcionField.getText().trim().isEmpty() ||
+                    pregunta1Field.getText().trim().isEmpty() || pregunta2Field.getText().trim().isEmpty() ||
+                    pregunta3Field.getText().trim().isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Todos los campos son obligatorios.", ButtonType.OK);
                 alert.showAndWait();
-            } else {
-                preguntas.add(pregunta.get().trim());
+                event1.consume();
             }
+        });
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == okButtonType) {
+            // Guardar en la base de datos
+            agregarEncuestaABaseDeDatos(tituloField.getText(), descripcionField.getText(),
+                    List.of(pregunta1Field.getText(), pregunta2Field.getText(), pregunta3Field.getText()));
+            return true;
         }
-
-        // Confirmación antes de guardar
-        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
-                "¿Deseas añadir esta encuesta?\n\nTítulo: " + titulo.get() +
-                        "\nDescripción: " + descripcion.get() +
-                        "\nPreguntas: " + String.join(", ", preguntas),
-                ButtonType.YES, ButtonType.NO);
-
-        Optional<ButtonType> resultado = confirmacion.showAndWait();
-        if (resultado.isEmpty() || resultado.get() != ButtonType.YES) return false;
-
-        // Guardar en la base de datos
-        agregarEncuestaABaseDeDatos(titulo.get(), descripcion.get(), preguntas);
-        return true;
+        return false;
     }
+
 
     private static void agregarEncuestaABaseDeDatos(String titulo, String descripcion, List<String> preguntas) {
         MongoCollection<Document> collection = MongoDBConnection.getDatabase().getCollection("Encuesta");
@@ -85,10 +103,11 @@ public class Dialogo {
                     .append("pregunta", preguntas.get(i))
                     .append("tipo", "texto"));
         }
-
+        Document ultimaEncuesta = collection.find().sort(Sorts.descending("_id")).first();
+        long nuevoId = (ultimaEncuesta != null) ? ultimaEncuesta.getLong("_id") + 1 : 1;
         // Crear el documento de la encuesta
         Document nuevaEncuesta = new Document()
-                .append("_id", nuevoIdEncuesta)  // ID único para la encuesta
+                .append("_id", nuevoId)  // ID único para la encuesta
                 .append("titulo", titulo)
                 .append("descripcion", descripcion)
                 .append("preguntas", preguntasDocs)
@@ -100,66 +119,98 @@ public class Dialogo {
     }
 
     public static boolean mostrarAgregarUsuarioDialog() {
-        // Solicitar el nombre del usuario
-        TextInputDialog nombreDialog = new TextInputDialog();
-        nombreDialog.setTitle("Nuevo Usuario");
-        nombreDialog.setHeaderText("Añadir Usuario");
-        nombreDialog.setContentText("Nombre:");
+        // Crear el diálogo
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Nuevo Usuario");
+        dialog.setHeaderText("Añadir Usuario");
 
-        Optional<String> nombre = nombreDialog.showAndWait();
-        if (nombre.isEmpty() || nombre.get().trim().isEmpty()) return false;
+        // Crear los labels y text fields
+        Label nombreLabel = new Label("Nombre:");
+        TextField nombreField = new TextField();
 
-        // Solicitar los apellidos del usuario
-        TextInputDialog apellidosDialog = new TextInputDialog();
-        apellidosDialog.setTitle("Apellidos del Usuario");
-        apellidosDialog.setHeaderText("Añadir Apellidos");
-        apellidosDialog.setContentText("Apellidos:");
+        Label apellidosLabel = new Label("Apellidos:");
+        TextField apellidosField = new TextField();
 
-        Optional<String> apellidos = apellidosDialog.showAndWait();
-        if (apellidos.isEmpty() || apellidos.get().trim().isEmpty()) return false;
+        Label correoLabel = new Label("Correo:");
+        TextField correoField = new TextField();
 
-        // Solicitar el correo electrónico del usuario
-        TextInputDialog correoDialog = new TextInputDialog();
-        correoDialog.setTitle("Correo del Usuario");
-        correoDialog.setHeaderText("Añadir Correo");
-        correoDialog.setContentText("Correo:");
+        Label edadLabel = new Label("Edad:");
+        TextField edadField = new TextField();
+        edadField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                edadField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+        });
 
-        Optional<String> correo = correoDialog.showAndWait();
-        if (correo.isEmpty() || correo.get().trim().isEmpty()) return false;
+        Label contrasenaLabel = new Label("Contraseña:");
+        PasswordField contrasenaField = new PasswordField();
 
-        // Solicitar la edad del usuario
-        TextInputDialog edadDialog = new TextInputDialog();
-        edadDialog.setTitle("Edad del Usuario");
-        edadDialog.setHeaderText("Añadir Edad");
-        edadDialog.setContentText("Edad:");
+        // Crear el layout del diálogo
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
 
-        Optional<String> edadStr = edadDialog.showAndWait();
-        if (edadStr.isEmpty() || edadStr.get().trim().isEmpty()) return false;
+        grid.add(nombreLabel, 0, 0);
+        grid.add(nombreField, 1, 0);
+        grid.add(apellidosLabel, 0, 1);
+        grid.add(apellidosField, 1, 1);
+        grid.add(correoLabel, 0, 2);
+        grid.add(correoField, 1, 2);
+        grid.add(edadLabel, 0, 3);
+        grid.add(edadField, 1, 3);
+        grid.add(contrasenaLabel, 0, 4);
+        grid.add(contrasenaField, 1, 4);
 
-        int edad;
-        try {
-            edad = Integer.parseInt(edadStr.get());
-        } catch (NumberFormatException e) {
-            // Si la edad no es un número válido, mostrar mensaje de error
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Por favor, ingrese una edad válida.", ButtonType.OK);
-            alert.showAndWait();
-            return false;
+        dialog.getDialogPane().setContent(grid);
+
+        // Añadir botones de OK y Cancelar
+        ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
+
+        // Añadir filtro de evento al botón OK
+        Node okButton = dialog.getDialogPane().lookupButton(okButtonType);
+        okButton.addEventFilter(ActionEvent.ACTION, event1 -> {
+            if (nombreField.getText().trim().isEmpty() || apellidosField.getText().trim().isEmpty() ||
+                    correoField.getText().trim().isEmpty() || edadField.getText().trim().isEmpty() ||
+                    contrasenaField.getText().trim().isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Todos los campos son obligatorios.", ButtonType.OK);
+                alert.showAndWait();
+                event1.consume();
+            } else if (!correoField.getText().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "El correo no cumple con el esquema de un correo válido.", ButtonType.OK);
+                alert.showAndWait();
+                event1.consume();
+            }
+        });
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == okButtonType) {
+            agregarUsuarioABaseDeDatos(nombreField.getText(), apellidosField.getText(), correoField.getText(),
+                    Integer.parseInt(edadField.getText()), contrasenaField.getText());
+            return true;
         }
 
-        // Confirmación antes de guardar
-        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
-                "¿Deseas añadir este usuario?\n\nNombre: " + nombre.get() +
-                        "\nApellidos: " + apellidos.get() +
-                        "\nCorreo: " + correo.get() +
-                        "\nEdad: " + edad,
-                ButtonType.YES, ButtonType.NO);
+        return false;
+    }
 
-        Optional<ButtonType> resultado = confirmacion.showAndWait();
-        if (resultado.isEmpty() || resultado.get() != ButtonType.YES) return false;
+    private static void agregarUsuarioABaseDeDatos(String nombre, String apellidos, String correo, int edad, String contrasena) {
 
-        // Guardar en la base de datos
-        agregarUsuarioABaseDeDatos(nombre.get(), apellidos.get(), correo.get(), edad);
-        return true;
+        MongoCollection<Document> collection = MongoDBConnection.getDatabase().getCollection("Usuario");
+
+        // Obtener el último documento insertado y su ID
+        Document ultimoUsuario = collection.find().sort(Sorts.descending("_id")).first();
+        long nuevoId = (ultimoUsuario != null) ? ultimoUsuario.getLong("_id") + 1 : 1;
+
+        Document nuevoUsuario = new Document()
+                .append("_id", nuevoId)
+                .append("nombre", nombre)
+                .append("apellidos", apellidos)
+                .append("correo", correo)
+                .append("edad", edad)
+                .append("contrasena", contrasena);
+
+        collection.insertOne(nuevoUsuario);
     }
 
     private static void agregarUsuarioABaseDeDatos(String nombre, String apellidos, String correo, int edad) {
