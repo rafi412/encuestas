@@ -7,10 +7,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
-import javafx.util.Duration;
 import org.bson.Document;
 
-import org.controlsfx.control.Notifications;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +82,6 @@ public class Dialogo {
         }
         return false;
     }
-
 
     private static void agregarEncuestaABaseDeDatos(String titulo, String descripcion, List<String> preguntas) {
         MongoCollection<Document> collection = MongoDBConnection.getDatabase().getCollection("Encuesta");
@@ -209,19 +206,6 @@ public class Dialogo {
                 .append("correo", correo)
                 .append("edad", edad)
                 .append("contrasena", contrasena);
-
-        collection.insertOne(nuevoUsuario);
-    }
-
-    private static void agregarUsuarioABaseDeDatos(String nombre, String apellidos, String correo, int edad) {
-        MongoCollection<Document> collection = MongoDBConnection.getDatabase().getCollection("Usuario");
-
-        Document nuevoUsuario = new Document()
-                .append("_id", collection.countDocuments() + 1)
-                .append("nombre", nombre)
-                .append("apellidos", apellidos)
-                .append("correo", correo)
-                .append("edad", edad);
 
         collection.insertOne(nuevoUsuario);
     }

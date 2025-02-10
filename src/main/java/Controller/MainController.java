@@ -25,7 +25,6 @@ public class MainController {
     @FXML
     private Button buttonRespuestas;
 
-
     @FXML
     private BorderPane mainPane;
 
