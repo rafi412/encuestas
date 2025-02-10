@@ -7,6 +7,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.control.*;
 import javafx.collections.FXCollections;
@@ -42,6 +44,9 @@ public class UsuariosController {
     @FXML
     private TextField buscarUsuarioTextField;
 
+    @FXML
+    private BorderPane root;
+
     private MongoDBConnection dbConnection;
     private ObservableList<Usuario> usuariosList;
 
@@ -61,6 +66,25 @@ public class UsuariosController {
         buscarUsuarioTextField.textProperty().addListener((observable, oldValue, newValue) -> {
             filtrarUsuarios(newValue);
         });
+
+        // Limpiar selección si se hace clic fuera de la tabla
+        root.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
+            if (!usuariosTableView.isHover()) {
+                usuariosTableView.getSelectionModel().clearSelection();
+            }
+        });
+
+        // Limpiar selección si se pulsa ESC
+        root.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case ESCAPE:
+                    usuariosTableView.getSelectionModel().clearSelection();
+                    break;
+                default:
+                    break;
+            }
+        });
+
     }
 
 
@@ -204,7 +228,7 @@ public class UsuariosController {
             double width = stage.getWidth();
             double height = stage.getHeight();
 
-            stage.setTitle("Visitas de Seguimiento");
+            stage.setTitle("Gestión de Encuestas");
             Scene scene = new Scene(mainView);
             stage.setScene(scene);
             stage.setWidth(width);

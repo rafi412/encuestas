@@ -57,7 +57,6 @@ public class LoginController {
 
     @FXML
     public void initialize() {
-
         dbConnection = new MongoDBConnection();
         usuariosList = FXCollections.observableArrayList();
     }
@@ -110,7 +109,7 @@ public class LoginController {
                     double width = stage.getWidth();
                     double height = stage.getHeight();
 
-                    stage.setTitle("Registro Karaoke");
+                    stage.setTitle("Gestión de Encuestas");
                     Scene scene = new Scene(mainView);
                     stage.setScene(scene);
                     stage.setWidth(width);
@@ -150,21 +149,6 @@ public class LoginController {
             mostrarAlerta("Error", "No se pudo cargar la vista.");
         }
     }
-
-
-
-
-
-//    void mostrarUsuarioLogeado() {
-//        MongoDBConnection dbConnection = new MongoDBConnection();
-//        Usuario usuarioLogeado = dbConnection.obtenerUsuarioPorId(idUsuarioLogeado);
-//        if (usuarioLogeado != null) {
-//            System.out.println("Usuario logeado: " + usuarioLogeado.getNombre());
-//            System.out.println("ID del usuario: " + usuarioLogeado.getId());
-//        } else {
-//            System.out.println("Usuario no encontrado.");
-//        }
-//    }
 
     private void mostrarAlerta(String titulo, String mensaje) {
         Alert alert = new Alert(Alert.AlertType.ERROR);

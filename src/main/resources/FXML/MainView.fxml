@@ -26,13 +26,13 @@
          <children>
             <HBox alignment="CENTER" spacing="20">
                <children>
-                  <Button fx:id="buttonAdmin" mnemonicParsing="false" onAction="#onButtonAdmin" prefHeight="85.0" prefWidth="140.0" text="Admin" />
-                  <Button fx:id="respuestasButton" mnemonicParsing="false" onAction="#onButtonRespuestas" prefHeight="85.0" prefWidth="140.0" text="Respuestas" />
+                  <Button fx:id="buttonAdmin" mnemonicParsing="false" onAction="#onButtonAdmin" prefHeight="85.0" prefWidth="140.0" text="Encuestas" />
+                  <Button fx:id="buttonRespuestas" mnemonicParsing="false" onAction="#onButtonRespuestas" prefHeight="85.0" prefWidth="140.0" text="Respuestas" />
                </children>
             </HBox>
             <HBox alignment="CENTER" spacing="20">
                <children>
-                  <Button fx:id="buttonUsuario" mnemonicParsing="false" onAction="#onButtonUsuario" prefHeight="85.0" prefWidth="140.0" text="Empleados" />
+                  <Button fx:id="buttonUsuario" mnemonicParsing="false" onAction="#onButtonUsuario" prefHeight="85.0" prefWidth="140.0" text="Usuarios" />
                </children>
             </HBox>
          </children>

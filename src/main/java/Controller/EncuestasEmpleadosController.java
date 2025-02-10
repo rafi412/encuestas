@@ -13,6 +13,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import collections.Encuesta;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import main.Dialogo;
@@ -40,6 +42,9 @@ public class EncuestasEmpleadosController {
 
     @FXML
     private TextField busquedaEmpresaTextField;
+
+    @FXML
+    private BorderPane root;
 
     private MongoDBConnection dbConnection;
     private ObservableList<Encuesta> encuestasList;
@@ -72,6 +77,25 @@ public class EncuestasEmpleadosController {
             addButton.setDisable(true);
             deleteButton.setDisable(true);
         }
+
+        // Limpiar selección si se hace clic fuera de la tabla
+        root.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
+            if (!empleadosTableView.isHover()) {
+                empleadosTableView.getSelectionModel().clearSelection();
+            }
+        });
+
+        // Limpiar selección si se pulsa ESC
+        root.setOnKeyPressed(event -> {
+            switch (event.getCode()) {
+                case ESCAPE:
+                    empleadosTableView.getSelectionModel().clearSelection();
+                    break;
+                default:
+                    break;
+            }
+        });
+
     }
 
     @FXML
@@ -413,12 +437,13 @@ public class EncuestasEmpleadosController {
     void onBackButton(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainView.fxml"));
-            loader.setController(new MainController()); // Especificar el controlador
+            loader.setController(new MainController());
             Parent mainView = loader.load();
 
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             Scene scene = new Scene(mainView);
             stage.setScene(scene);
+            stage.setTitle("Gestión de Encuestas");
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

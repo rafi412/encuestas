@@ -19,7 +19,7 @@
          <children>
             <VBox alignment="CENTER">
                <children>
-                  <Label text="Registro Karaoke">
+                  <Label text="Gestión de Encuestas">
                      <font>
                         <Font name="Arial Bold" size="24.0" />
                      </font>
@@ -45,11 +45,11 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <Label text="Usuario:" textFill="WHITE" textOverrun="WORD_ELLIPSIS">
+            <Label text="Usuario:" textOverrun="WORD_ELLIPSIS">
                <font>
                   <Font name="System Bold" size="14.0" />
                </font></Label>
-            <Label text="Contraseña:" textFill="WHITE" GridPane.rowIndex="1">
+            <Label text="Contraseña:" GridPane.rowIndex="1">
                <font>
                   <Font name="System Bold" size="14.0" />
                </font></Label>

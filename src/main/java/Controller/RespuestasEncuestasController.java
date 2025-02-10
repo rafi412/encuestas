@@ -134,6 +134,7 @@ public class RespuestasEncuestasController {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             Scene scene = new Scene(mainView);
             stage.setScene(scene);
+            stage.setTitle("Gestión de Encuestas");
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

@@ -66,7 +66,7 @@ public class MainController {
             double width = stage.getWidth();
             double height = stage.getHeight();
 
-            stage.setTitle("Visitas de Seguimiento");
+            stage.setTitle("Encuestas");
             Scene scene = new Scene(encuestasEmpleadosView);
             stage.setScene(scene);
             stage.setWidth(width);
@@ -93,7 +93,7 @@ public class MainController {
             double width = stage.getWidth();
             double height = stage.getHeight();
 
-            stage.setTitle("Visitas de Seguimiento");
+            stage.setTitle("Usuarios");
             Scene scene = new Scene(usuariosView);
             stage.setScene(scene);
             stage.setWidth(width);

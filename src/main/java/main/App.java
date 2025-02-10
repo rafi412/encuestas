@@ -15,9 +15,7 @@ public class App extends Application {
     public void start(Stage primaryStage) throws Exception {
         App.primaryStage = primaryStage;
 
-        primaryStage.setTitle("Gestión de Prácticas" +
-                "" +
-                "");
+        primaryStage.setTitle("Iniciar Sesión");
         primaryStage.setScene(new Scene(controller.getView()));
 
         primaryStage.show();
